@@ -25,7 +25,8 @@ import {
   TrendingUp,
   Users,
   Target,
-  Send
+  Send,
+  Eye
 } from 'lucide-react';
 
 // --- הגדרות כלליות ---
@@ -128,6 +129,12 @@ export default function App() {
     setIsModalOpen(true);
   };
 
+  const deleteClient = (clientId, clientName) => {
+    if (window.confirm(`האם אתה בטוח שברצונך למחוק את הלקוח "${clientName}"?`)) {
+      setClients(prev => prev.filter(client => client.id !== clientId));
+    }
+  };
+
   const updateClientData = (clientId, newData) => {
     setClients(prev => prev.map(client => 
       client.id === clientId ? { ...client, ...newData } : client
@@ -158,9 +165,8 @@ export default function App() {
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-3">
             {/* לוגו בעיגול ליד השם */}
-            <div className="w-12 h-12 bg-gray-900 rounded-full flex items-center justify-center overflow-hidden border-2 border-gray-100 shadow-sm">
-                <span className="text-white font-bold text-xs">ADV</span> 
-                {/* הערה: אם תשים כאן <img src={BRAND_LOGO} /> זה יציג את הלוגו שלך */}
+            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center overflow-hidden border-2 border-gray-100 shadow-sm">
+                <img src="/media/images/logo.svg" alt="Logo" className="w-10 h-10 object-contain" />
             </div>
             <div>
               <h1 className="text-xl font-black text-slate-900 tracking-tight uppercase">{BRAND_NAME}</h1>
@@ -183,7 +189,7 @@ export default function App() {
           {clients.map(client => (
             <div 
               key={client.id} 
-              className="bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden group cursor-pointer border border-gray-100 flex flex-col h-full"
+              className="bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden group border border-gray-100 flex flex-col h-full"
               onClick={() => handleClientClick(client.id)}
             >
               <div className="h-40 bg-gray-200 relative overflow-hidden">
@@ -224,10 +230,22 @@ export default function App() {
                   </div>
                 )}
 
-                <div className="mt-auto">
-                   <button className="w-full py-2.5 bg-slate-900 text-white font-medium rounded-xl transition-colors text-sm hover:bg-slate-700 flex items-center justify-center gap-2">
-                     <Edit2 size={14} />
+                <div className="mt-auto flex items-center gap-2">
+                   <button 
+                    onClick={(e) => { e.stopPropagation(); handleClientClick(client.id); }}
+                    className="flex-grow py-2.5 bg-slate-900 text-white font-medium rounded-xl transition-colors text-sm hover:bg-slate-700 flex items-center justify-center gap-2">
+                     <Eye size={14} />
                      ניהול תיק
+                   </button>
+                   <button 
+                     onClick={(e) => {
+                       e.stopPropagation();
+                       deleteClient(client.id, client.name);
+                     }}
+                     className="p-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors"
+                     title="מחק לקוח"
+                   >
+                     <Trash2 size={16} />
                    </button>
                 </div>
               </div>
