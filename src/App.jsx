@@ -51,7 +51,7 @@ const INITIAL_CLIENTS = [
     contact: {
       phone: "050-9999999",
       email: "nuka@restaurant.com",
-      website: "https://www.nukarestaurant.com",
+      website: "/nuka.html",
       instagram: "nuka_tlv",
       facebook: "Nuka Restaurant",
       notes: "מסעדה אסיאתית יוקרתית. חשוב לשמור על שפה עיצובית מינימליסטית."
