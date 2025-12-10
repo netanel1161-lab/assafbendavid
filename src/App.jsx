@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Folder, 
   Layout, 
@@ -48,6 +48,7 @@ const INITIAL_CLIENTS = [
   {
     id: 1,
     name: "מסעדת נוקה",
+    type: "מסעדה",
     logo: "https://scontent.cdninstagram.com/v/t51.82787-15/520077361_18012368498774055_7485616743030910864_n.jpg?stp=dst-jpg_e35_tt6&_nc_cat=107&ig_cache_key=MzY3ODE3NzAyNzI2MzQ5MTc2Nw%3D%3D.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6InhwaWRzLjE0NDB4MTkyMC5zZHIuQzMifQ%3D%3D&_nc_ohc=wZ5TMMzCp_kQ7kNvwG5-tqc&_nc_oc=AdkDUtdM-MWLpDUbK-vRYMAj7_Tb5_O8wPjt1QgVbQ8GzlFq-Xxod9ohFH5c7LCnLms&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&_nc_ht=scontent.cdninstagram.com&_nc_gid=yoLCRnYSXPIamebveqkIIQ&oh=00_Afkp0TwqzPbhAZk6npuMSAqkP6_La4Xg0kTLIjhZ9tG5Ug&oe=693E0265",
     contact: {
       phone: "050-9999999",
@@ -65,12 +66,13 @@ const INITIAL_CLIENTS = [
       name: "השקת תפריט ערב",
       currentStageIndex: 1,
       stages: [
-        { name: "בניית קונספט", assignee: "רון קריאייטיב", note: "אושר הקונספט הכהה", isApproved: true },
-        { name: "צילום מנות", assignee: "דנה הפקות", note: "תיאום צלם לשבוע הבא", isApproved: false },
-        { name: "עיצוב תפריט", assignee: "עידן עיצוב", note: "", isApproved: false },
-        { name: "הדפסה והפצה", assignee: "", note: "", isApproved: false }
+        { name: "בניית קונספט", assignee: "רון קריאייטיב", note: "אושר הקונספט הכהה", isApproved: true, stickyNotes: [], dueDate: "", dueTime: "" },
+        { name: "צילום מנות", assignee: "דנה הפקות", note: "תיאום צלם לשבוע הבא", isApproved: false, stickyNotes: [], dueDate: "", dueTime: "" },
+        { name: "עיצוב תפריט", assignee: "עידן עיצוב", note: "", isApproved: false, stickyNotes: [], dueDate: "", dueTime: "" },
+        { name: "הדפסה והפצה", assignee: "", note: "", isApproved: false, stickyNotes: [], dueDate: "", dueTime: "" }
       ]
     },
+    tasks: [],
     results: {
       followers: 245,
       leads: 1845,
@@ -81,6 +83,7 @@ const INITIAL_CLIENTS = [
   {
     id: 2,
     name: "המקסיקני",
+    type: "מסעדה",
     logo: "https://eilat.city/images/6035-8827-%D7%94%D7%9E%D7%A7%D7%A1%D7%99%D7%A7%D7%A0%D7%99-(%D7%9E%D7%AA%D7%97%D7%9D-%D7%91%D7%99%D7%92)-%D7%90%D7%99%D7%9C%D7%AA-md.jpg",
     contact: {
       phone: "08-6333333",
@@ -92,6 +95,7 @@ const INITIAL_CLIENTS = [
     },
     links: [],
     project: null,
+    tasks: [],
     results: {
       followers: 0,
       leads: 0,
@@ -119,20 +123,26 @@ export default function App() {
 
   const [selectedClientId, setSelectedClientId] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [initialModalTab, setInitialModalTab] = useState('project');
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [newClientName, setNewClientName] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [confirmData, setConfirmData] = useState(null); // { message, onConfirm }
 
   useEffect(() => {
     localStorage.setItem('agencyClientsV3', JSON.stringify(clients));
   }, [clients]);
 
-  const handleClientClick = (id) => {
+  const handleClientClick = (id, initialTab = 'project') => {
     setSelectedClientId(id);
+    setInitialModalTab(initialTab);
     setIsModalOpen(true);
   };
 
+  const closeConfirm = () => setConfirmData(null);
+
   const deleteClient = (clientId, clientName) => {
-    if (window.confirm(`האם אתה בטוח שברצונך למחוק את הלקוח "${clientName}"?`)) {
-      setClients(prev => prev.filter(client => client.id !== clientId));
-    }
+    setDeleteTarget({ id: clientId, name: clientName });
   };
 
   const updateClientData = (clientId, newData) => {
@@ -142,24 +152,33 @@ export default function App() {
   };
 
   const createNewClient = () => {
-    const name = prompt("שם הלקוח החדש:");
+    setNewClientName("");
+    setIsAddOpen(true);
+  };
+
+  const handleCreateClient = () => {
+    const name = newClientName.trim();
     if (!name) return;
     const newClient = {
       id: Date.now(),
       name: name,
+      type: "",
       logo: "https://via.placeholder.com/200?text=" + name.charAt(0),
       contact: { phone: "", email: "", website: "", instagram: "", facebook: "", notes: "" },
       links: [],
       project: null,
+      tasks: [],
       results: { followers: 0, leads: 0, reach: 0, engagement: "0%" }
     };
     setClients([...clients, newClient]);
+    setIsAddOpen(false);
+    setNewClientName("");
   };
 
   const selectedClient = clients.find(c => c.id === selectedClientId);
 
   return (
-    <div dir="rtl" className="min-h-screen bg-slate-50 text-gray-800 font-sans">
+    <div dir="rtl" className="min-h-screen bg-slate-50 text-gray-800 font-sans flex flex-col">
       {/* Header */}
       <header className="bg-white shadow-sm p-4 sticky top-0 z-10 border-b border-gray-200">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
@@ -184,7 +203,7 @@ export default function App() {
       </header>
 
       {/* Grid of Clients */}
-      <main className="max-w-7xl mx-auto p-6">
+      <main className="max-w-7xl mx-auto p-6 flex-1 w-full">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
           {clients.map(client => (
             <div 
@@ -213,6 +232,7 @@ export default function App() {
                 </div>
 
                 <h3 className="font-bold text-xl text-gray-800 mb-1">{client.name}</h3>
+                <p className="text-xs text-gray-400 mt-1">{client.type || "ללא קטגוריה"}</p>
 
                 {client.project ? (
                   <div className="mt-2 mb-4">
@@ -225,28 +245,35 @@ export default function App() {
                   <div className="mt-2 mb-4">
                     <span className="text-xs font-semibold bg-gray-100 text-gray-500 px-3 py-1 rounded-full">
                        אין פרויקט
-                     </span>
-                     <p className="text-sm text-gray-400 mt-2">--</p>
+                    </span>
+                    <p className="text-sm text-gray-400 mt-2">--</p>
                   </div>
                 )}
 
                 <div className="mt-auto flex items-center gap-2">
-                   <button 
+                  <button 
                     onClick={(e) => { e.stopPropagation(); handleClientClick(client.id); }}
                     className="flex-grow py-2.5 bg-slate-900 text-white font-medium rounded-xl transition-colors text-sm hover:bg-slate-700 flex items-center justify-center gap-2">
-                     <Eye size={14} />
-                     ניהול תיק
-                   </button>
-                   <button 
-                     onClick={(e) => {
-                       e.stopPropagation();
-                       deleteClient(client.id, client.name);
-                     }}
-                     className="p-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors"
-                     title="מחק לקוח"
-                   >
-                     <Trash2 size={16} />
-                   </button>
+                    <Eye size={14} />
+                    ניהול תיק
+                  </button>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); handleClientClick(client.id, 'info'); }}
+                    className="p-3 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-colors"
+                    title="עריכת פרטי עסק"
+                  >
+                    <Edit2 size={16} />
+                  </button>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteClient(client.id, client.name);
+                    }}
+                    className="p-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors"
+                    title="מחק לקוח"
+                  >
+                    <Trash2 size={16} />
+                  </button>
                 </div>
               </div>
             </div>
@@ -258,9 +285,117 @@ export default function App() {
       {isModalOpen && selectedClient && (
         <ClientModal 
           client={selectedClient} 
+          initialTab={initialModalTab}
           onClose={() => setIsModalOpen(false)} 
           onUpdate={(data) => updateClientData(selectedClient.id, data)}
+          openConfirm={(payload) => setConfirmData(payload)}
         />
+      )}
+
+      {/* Add Client Modal */}
+      {isAddOpen && (
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 border border-gray-100">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h3 className="text-xl font-black text-gray-800">הוספת לקוח חדש</h3>
+                <p className="text-sm text-gray-500 mt-1">הזן שם ברור כדי שתזהה אותו בקלות.</p>
+              </div>
+              <button className="text-gray-400 hover:text-gray-600" onClick={() => setIsAddOpen(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <label className="text-xs font-bold text-gray-500 mb-2 block uppercase">שם הלקוח</label>
+            <input
+              autoFocus
+              type="text"
+              value={newClientName}
+              onChange={(e) => setNewClientName(e.target.value)}
+              className="w-full p-3 rounded-2xl border border-gray-200 bg-gray-50 focus:border-blue-500 outline-none"
+              placeholder='למשל: "מסעדת נוקה" או "קמפיין X"'
+            />
+
+            <div className="flex gap-2 mt-6">
+              <button
+                onClick={handleCreateClient}
+                disabled={!newClientName.trim()}
+                className="flex-1 py-3 rounded-2xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                צור לקוח
+              </button>
+              <button
+                onClick={() => setIsAddOpen(false)}
+                className="flex-1 py-3 rounded-2xl border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-all"
+              >
+                ביטול
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation */}
+      {deleteTarget && (
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 border border-gray-100">
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="text-xl font-black text-gray-800">מחיקת לקוח</h3>
+              <button className="text-gray-400 hover:text-gray-600" onClick={() => setDeleteTarget(null)}>
+                <X size={20} />
+              </button>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              האם למחוק את <span className="font-bold text-gray-800">"{deleteTarget.name}"</span>? הפעולה מסירה את הלקוח מהרשימה.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setClients(prev => prev.filter(c => c.id !== deleteTarget.id));
+                  setDeleteTarget(null);
+                }}
+                className="flex-1 py-3 rounded-2xl bg-red-500 text-white font-bold hover:bg-red-600 transition-all"
+              >
+                מחיקה סופית
+              </button>
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="flex-1 py-3 rounded-2xl border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-all"
+              >
+                ביטול
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm dialog (generic) */}
+      {confirmData && (
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5 border border-gray-100">
+            <div className="flex justify-between items-start mb-3">
+              <h4 className="text-lg font-black text-gray-800">אישור פעולה</h4>
+              <button className="text-gray-400 hover:text-gray-600" onClick={closeConfirm}>
+                <X size={18} />
+              </button>
+            </div>
+            <p className="text-sm text-gray-600 mb-5">{confirmData.message}</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { confirmData.onConfirm(); closeConfirm(); }}
+                className="flex-1 py-2.5 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 transition-colors"
+              >
+                אישור
+              </button>
+              <button
+                onClick={closeConfirm}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-colors"
+              >
+                ביטול
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -268,8 +403,12 @@ export default function App() {
 
 // --- המודל הראשי ---
 
-function ClientModal({ client, onClose, onUpdate }) {
-  const [activeTab, setActiveTab] = useState('project');
+function ClientModal({ client, onClose, onUpdate, initialTab = 'project', openConfirm }) {
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab, client.id]);
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
@@ -311,7 +450,7 @@ function ClientModal({ client, onClose, onUpdate }) {
         <div className="flex-1 overflow-y-auto p-6 bg-slate-50/80">
 
           {activeTab === 'links' && (
-            <LinksTab links={client.links} onUpdate={(links) => onUpdate({ ...client, links })} />
+            <LinksTab links={client.links} onUpdate={(links) => onUpdate({ ...client, links })} openConfirm={openConfirm} />
           )}
 
           {activeTab === 'project' && (
@@ -327,8 +466,8 @@ function ClientModal({ client, onClose, onUpdate }) {
 
           {activeTab === 'tasks' && (
             <VerificationTab 
-              project={client.project} 
-              onUpdate={(project) => onUpdate({ ...client, project })} 
+              tasks={client.tasks || []}
+              onUpdateTasks={(tasks) => onUpdate({ ...client, tasks })}
             />
           )}
 
@@ -457,6 +596,8 @@ function ProjectTab({ project, onUpdate }) {
   const [reminderOpen, setReminderOpen] = useState(false);
   const [reminderContact, setReminderContact] = useState("");
   const [reminderMsg, setReminderMsg] = useState("");
+  const [reminderDate, setReminderDate] = useState("");
+  const [reminderTime, setReminderTime] = useState("");
 
   const handleStartProject = () => {
     if (!newProjName) return alert("חובה לתת שם לפרויקט");
@@ -464,7 +605,8 @@ function ProjectTab({ project, onUpdate }) {
       isActive: true,
       name: newProjName,
       currentStageIndex: 0,
-      stages: newProjStages.map(stageName => ({ name: stageName, assignee: "", note: "", isApproved: false }))
+      stages: newProjStages.map(stageName => ({ name: stageName, assignee: "", note: "", isApproved: false, stickyNotes: [], dueDate: "", dueTime: "" })),
+      reminders: []
     };
     onUpdate(projectStructure);
     setIsCreating(false);
@@ -480,10 +622,24 @@ function ProjectTab({ project, onUpdate }) {
   const sendWhatsAppReminder = () => {
     if (!reminderContact || !reminderMsg) return alert("יש לבחור איש קשר ולהזין תוכן להודעה");
 
-    const fullMsg = `*תזכורת ממערכת ADV*\\n\\nעבור: ${reminderContact}\\nפרויקט: ${project.name}\\n\\n${reminderMsg}`;
+    const fullMsg = `*תזכורת ממערכת ADV*\n\nעבור: ${reminderContact}\nפרויקט: ${project.name}\n\n${reminderMsg}`;
     const encodedMsg = encodeURIComponent(fullMsg);
+    const newReminder = {
+      id: Date.now(),
+      contact: reminderContact,
+      msg: reminderMsg,
+      date: new Date().toISOString()
+    };
+    onUpdate({
+      ...project,
+      reminders: [...(project.reminders || []), newReminder]
+    });
     // שליחה למספר שלך (050-8504833)
     window.open(`https://wa.me/${MY_PHONE_NUMBER}?text=${encodedMsg}`, '_blank');
+    setReminderMsg("");
+    setReminderContact("");
+    setReminderDate("");
+    setReminderTime("");
     setReminderOpen(false);
   };
 
@@ -533,6 +689,26 @@ function ProjectTab({ project, onUpdate }) {
   }
 
   const currentStage = project.stages[project.currentStageIndex];
+  const currentStageDue = currentStage.dueDate ? new Date(`${currentStage.dueDate}T${currentStage.dueTime || '09:00'}`) : null;
+  const progress = Math.round(((project.currentStageIndex + 1) / project.stages.length) * 100);
+  const recentReminders = (project.reminders || []).slice(-3).reverse();
+  const currentStickyNotes = currentStage.stickyNotes || [];
+  const timeToDeadline = currentStageDue
+    ? (() => {
+        const diff = currentStageDue.getTime() - Date.now();
+        if (diff <= 0) return "עבר הזמן";
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+        return `${days} ימים ${hours} שעות`;
+      })()
+    : null;
+
+  const markStageDone = () => {
+    const updatedStages = [...project.stages];
+    updatedStages[project.currentStageIndex].isApproved = true;
+    const nextIndex = Math.min(project.stages.length - 1, project.currentStageIndex + 1);
+    onUpdate({ ...project, stages: updatedStages, currentStageIndex: nextIndex });
+  };
 
   return (
     <div className="space-y-8">
@@ -567,55 +743,165 @@ function ProjectTab({ project, onUpdate }) {
                <span className="text-blue-600 font-bold text-sm tracking-wider uppercase mb-1 block">עריכת שלב נוכחי</span>
                <h3 className="text-2xl font-black text-gray-800">{currentStage.name}</h3>
              </div>
-             {currentStage.isApproved && (
-               <span className="bg-green-100 text-green-700 px-4 py-1 rounded-full text-sm font-bold flex items-center gap-2"><Check size={16} /> שלב זה אושר</span>
-             )}
+             <div className="flex items-center gap-2">
+               {currentStage.isApproved && (
+                 <span className="bg-green-100 text-green-700 px-4 py-1 rounded-full text-sm font-bold flex items-center gap-2"><Check size={16} /> שלב זה אושר</span>
+               )}
+               {!currentStage.isApproved && (
+                 <button
+                   onClick={markStageDone}
+                   className="px-3 py-2 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700"
+                 >
+                   סמן כבוצע
+                 </button>
+               )}
+             </div>
            </div>
 
            <label className="block text-sm font-bold text-gray-500 mb-2">פתק / הנחיות לשלב זה</label>
-           <textarea 
-             className="w-full p-4 bg-yellow-50 border-2 border-yellow-100 rounded-xl h-40 resize-none focus:border-yellow-300 outline-none text-gray-700 text-lg leading-relaxed"
-             placeholder={`רשום כאן הערות עבור שלב ה${currentStage.name}...`}
-             value={currentStage.note}
-             onChange={(e) => {
+          <textarea 
+            className="w-full p-4 bg-yellow-50 border-2 border-yellow-100 rounded-xl h-40 resize-none focus:border-yellow-300 outline-none text-gray-700 text-lg leading-relaxed"
+            placeholder={`רשום כאן הערות עבור שלב ה${currentStage.name}...`}
+            value={currentStage.note}
+            onChange={(e) => {
                const newStages = [...project.stages];
                newStages[project.currentStageIndex].note = e.target.value;
                onUpdate({...project, stages: newStages});
-             }}
-           ></textarea>
+            }}
+          ></textarea>
 
-           <div className="mt-6 flex items-center gap-4">
-             <div className="flex-1">
-               <label className="block text-sm font-bold text-gray-500 mb-2">אחראי ביצוע</label>
-               <select 
-                 className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-medium outline-none"
+           <div className="mt-4">
+             <div className="flex items-center justify-between mb-2">
+               <h4 className="text-sm font-bold text-gray-700">פתקים נדבקים</h4>
+             </div>
+             <div className="flex gap-2 mb-3">
+               <input
+                 type="text"
+                 placeholder="כתוב פתק קצר..."
+                 className="flex-1 p-3 rounded-xl border border-amber-200 bg-amber-50 outline-none focus:border-amber-300 text-sm"
+                 id="newStickyNote"
+                 onKeyDown={(e) => {
+                   if (e.key === 'Enter') {
+                     const val = e.currentTarget.value.trim();
+                     if (!val) return;
+                     const updatedStages = [...project.stages];
+                     const list = updatedStages[project.currentStageIndex].stickyNotes || [];
+                     list.push({ id: Date.now(), text: val });
+                     updatedStages[project.currentStageIndex].stickyNotes = list;
+                     onUpdate({ ...project, stages: updatedStages });
+                     e.currentTarget.value = '';
+                   }
+                 }}
+               />
+               <button
+                 className="px-3 py-2 rounded-xl bg-amber-500 text-white text-sm font-bold hover:bg-amber-600"
+                 onClick={() => {
+                   const input = document.getElementById('newStickyNote');
+                   const val = input?.value.trim();
+                   if (!val) return;
+                   const updatedStages = [...project.stages];
+                   const list = updatedStages[project.currentStageIndex].stickyNotes || [];
+                   list.push({ id: Date.now(), text: val });
+                   updatedStages[project.currentStageIndex].stickyNotes = list;
+                   onUpdate({ ...project, stages: updatedStages });
+                   input.value = '';
+                 }}
+               >
+                 הוסף פתק
+               </button>
+             </div>
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+               {currentStickyNotes.map(note => (
+                 <div key={note.id} className="bg-amber-100 border border-amber-200 rounded-xl p-3 shadow-sm relative">
+                   <p className="text-sm text-amber-900 whitespace-pre-wrap">{note.text}</p>
+                   <button
+                     className="absolute top-2 left-2 text-amber-700 hover:text-red-600"
+                     onClick={() => {
+                       const updatedStages = [...project.stages];
+                       updatedStages[project.currentStageIndex].stickyNotes = currentStickyNotes.filter(n => n.id !== note.id);
+                       onUpdate({ ...project, stages: updatedStages });
+                     }}
+                   >
+                     <X size={14} />
+                   </button>
+                 </div>
+               ))}
+               {currentStickyNotes.length === 0 && (
+                 <div className="text-xs text-gray-400">אין פתקים עדיין.</div>
+               )}
+             </div>
+           </div>
+
+            <div className="mt-6 flex items-center gap-4">
+              <div className="flex-1">
+                <label className="block text-sm font-bold text-gray-500 mb-2">אחראי ביצוע</label>
+                <select 
+                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-medium outline-none"
                  value={currentStage.assignee}
                  onChange={(e) => {
                    const newStages = [...project.stages];
                    newStages[project.currentStageIndex].assignee = e.target.value;
                    onUpdate({...project, stages: newStages});
                  }}
-               >
-                 <option value="">בחר איש צוות...</option>
-                 {TEAM_MEMBERS.map(m => <option key={m} value={m}>{m}</option>)}
-               </select>
-             </div>
+                >
+                  <option value="">בחר איש צוות...</option>
+                  {TEAM_MEMBERS.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+              </div>
              <button onClick={() => { if(confirm("למחוק את הפרויקט הזה?")) onUpdate(null); }} className="mt-7 p-3 text-red-500 hover:bg-red-50 rounded-xl" title="מחק פרויקט"><Trash2 size={20} /></button>
            </div>
         </div>
 
         {/* כרטיס סטטוס */}
-        <div className="bg-white border-2 border-slate-100 p-8 rounded-3xl flex flex-col justify-between relative overflow-hidden shadow-lg shadow-slate-200/50">
+          <div className="bg-white border-2 border-slate-100 p-8 rounded-3xl flex flex-col justify-between relative overflow-hidden shadow-lg shadow-slate-200/50">
           <div>
             <h4 className="text-slate-400 font-bold text-sm uppercase mb-4 tracking-widest">סטטוס פרויקט</h4>
             <div className="flex items-baseline gap-2">
-              <div className="text-5xl font-black text-slate-800">{Math.round(((project.currentStageIndex) / project.stages.length) * 100)}%</div>
+              <div className="text-5xl font-black text-slate-800">{progress}%</div>
               <span className="text-slate-400 font-medium">הושלם</span>
             </div>
 
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-bold text-gray-500 mb-1">תאריך יעד</label>
+                <input
+                  type="date"
+                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-medium outline-none"
+                  value={currentStage.dueDate || ''}
+                  onChange={(e) => {
+                    const updatedStages = [...project.stages];
+                    updatedStages[project.currentStageIndex].dueDate = e.target.value;
+                    onUpdate({ ...project, stages: updatedStages });
+                  }}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-500 mb-1">שעת יעד</label>
+                <input
+                  type="time"
+                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-medium outline-none"
+                  value={currentStage.dueTime || ''}
+                  onChange={(e) => {
+                    const updatedStages = [...project.stages];
+                    updatedStages[project.currentStageIndex].dueTime = e.target.value;
+                    onUpdate({ ...project, stages: updatedStages });
+                  }}
+                />
+              </div>
+            </div>
+
+            {currentStage.dueDate && (
+              <div className="mt-3 text-sm text-gray-600 flex items-center gap-2">
+                <span className="px-2 py-1 rounded-full bg-blue-50 text-blue-700 font-bold">
+                  דד-ליין: {currentStage.dueDate} {currentStage.dueTime}
+                </span>
+                {timeToDeadline && <span className="text-xs text-gray-500">נותרו {timeToDeadline}</span>}
+              </div>
+            )}
+
             {/* Progress Bar */}
             <div className="w-full bg-slate-100 h-2 rounded-full mt-4 overflow-hidden">
-               <div className="bg-blue-600 h-full rounded-full transition-all duration-500" style={{width: `${Math.round(((project.currentStageIndex) / project.stages.length) * 100)}%`}}></div>
+               <div className="bg-blue-600 h-full rounded-full transition-all duration-500" style={{width: `${progress}%`}}></div>
             </div>
           </div>
 
@@ -627,6 +913,32 @@ function ProjectTab({ project, onUpdate }) {
                 {currentStage.assignee || "טרם שובץ"}
               </div>
             </div>
+
+            {recentReminders.length > 0 && (
+              <div className="bg-white p-4 rounded-xl border border-slate-100">
+                <div className="text-xs text-slate-400 mb-2 font-bold">תזכורות אחרונות</div>
+                <div className="space-y-2">
+                  {recentReminders.map(reminder => (
+                    <div key={reminder.id} className="text-xs text-slate-600 border-b border-slate-100 pb-2 last:border-none last:pb-0">
+                      <div className="flex justify-between gap-2 items-center">
+                        <span className="font-semibold">{reminder.contact}</span>
+                        <span className="text-slate-400">{new Date(reminder.date).toLocaleDateString()} · {new Date(reminder.date).toLocaleTimeString()}</span>
+                      </div>
+                      <p className="text-slate-500">{reminder.msg}</p>
+                      <button
+                        className="text-red-500 hover:text-red-600 mt-1"
+                        onClick={() => {
+                          const remaining = (project.reminders || []).filter(r => r.id !== reminder.id);
+                          onUpdate({ ...project, reminders: remaining });
+                        }}
+                      >
+                        מחק מהלוג
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* אזור תזכורת משופר */}
             {!reminderOpen ? (
@@ -653,6 +965,21 @@ function ProjectTab({ project, onUpdate }) {
                   {TEAM_MEMBERS.map(m => <option key={m} value={m}>{m}</option>)}
                 </select>
 
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="date"
+                    className="flex-1 p-2 bg-slate-50 border rounded-lg text-sm"
+                    value={reminderDate}
+                    onChange={e => setReminderDate(e.target.value)}
+                  />
+                  <input
+                    type="time"
+                    className="flex-1 p-2 bg-slate-50 border rounded-lg text-sm"
+                    value={reminderTime}
+                    onChange={e => setReminderTime(e.target.value)}
+                  />
+                </div>
+
                 <textarea 
                   className="w-full p-2 bg-slate-50 border rounded-lg text-sm mb-2 resize-none h-20"
                   placeholder="תוכן ההודעה..."
@@ -666,6 +993,20 @@ function ProjectTab({ project, onUpdate }) {
                 >
                   <Send size={14} /> שלח לוואטסאפ
                 </button>
+                {reminderDate && (
+                  <a
+                    className="mt-2 text-xs text-blue-600 hover:underline text-center"
+                    href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('תזכורת פרויקט: ' + project.name)}&details=${encodeURIComponent(reminderMsg || '')}&dates=${(() => {
+                      const dateStr = reminderDate.replace(/-/g,'');
+                      const timeStr = reminderTime ? reminderTime.replace(':','') : '0900';
+                      return `${dateStr}T${timeStr}00/${dateStr}T${timeStr}00`;
+                    })()}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    הוסף ליומן גוגל
+                  </a>
+                )}
               </div>
             )}
           </div>
@@ -677,41 +1018,165 @@ function ProjectTab({ project, onUpdate }) {
 
 // --- קומפוננטות עזר ---
 
-function LinksTab({ links, onUpdate }) {
+function LinksTab({ links, onUpdate, openConfirm }) {
+  const defaultTags = ['מסמכים', 'לוגו וקו עסק', 'יום צילום', 'כללי'];
+  const [tags, setTags] = useState(defaultTags);
+  const [newTag, setNewTag] = useState('');
   const [newLink, setNewLink] = useState({ name: '', url: '', tag: 'כללי' });
+  const fileInputRef = useRef(null);
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const objectUrl = URL.createObjectURL(file);
+    setNewLink({
+      name: file.name,
+      url: objectUrl,
+      tag: newLink.tag || 'כללי',
+      type: 'file',
+      fileName: file.name,
+      fileType: file.type
+    });
+  };
+
   const addLink = () => {
     if (!newLink.name) return;
-    onUpdate([...links, { ...newLink, id: Date.now(), type: 'link' }]);
+    const type = newLink.type || 'link';
+    onUpdate([...links, { ...newLink, id: Date.now(), type }]);
     setNewLink({ name: '', url: '', tag: 'כללי' });
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const addTag = () => {
+    const tag = newTag.trim();
+    if (!tag) return;
+    if (!tags.includes(tag)) setTags([...tags, tag]);
+    setNewTag('');
+    setNewLink(prev => ({ ...prev, tag }));
+  };
+
+  const removeTag = (tag) => {
+    const doRemove = () => {
+      const updated = tags.filter(t => t !== tag);
+      setTags(updated);
+      if (newLink.tag === tag) setNewLink(prev => ({ ...prev, tag: updated[0] || '' }));
+    };
+    if (openConfirm) {
+      openConfirm({ message: `למחוק את התגית "${tag}"?`, onConfirm: doRemove });
+    } else if (window.confirm(`למחוק את התגית "${tag}"?`)) {
+      doRemove();
+    }
+  };
+
+  const updateExistingTag = (id, tag) => {
+    onUpdate(links.map(l => l.id === id ? { ...l, tag } : l));
   };
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-4 items-end">
-        <div className="flex-1 w-full">
-          <label className="text-xs font-bold text-gray-400 mb-1 block uppercase">שם המסמך</label>
-          <input type="text" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" placeholder="למשל: לוגו וקטורי" value={newLink.name} onChange={e => setNewLink({...newLink, name: e.target.value})}/>
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-4">
+        <div>
+          <label className="text-xs font-bold text-gray-400 mb-2 block uppercase">תגיות</label>
+          <div className="flex flex-wrap gap-2">
+            {tags.map(tag => (
+              <button
+                key={tag}
+                type="button"
+                className={`flex items-center gap-2 px-3 py-2 rounded-full border text-sm transition-all ${newLink.tag === tag ? 'bg-blue-50 border-blue-300 text-blue-700 shadow-sm' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'}`}
+                onClick={() => setNewLink(prev => ({ ...prev, tag }))}
+              >
+                <span>{tag}</span>
+                <X
+                  size={14}
+                  className="text-gray-400 hover:text-red-500"
+                  onClick={(e) => { e.stopPropagation(); removeTag(tag); }}
+                  title="מחק תגית"
+                />
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2 mt-3 flex-wrap">
+            <input
+              type="text"
+              value={newTag}
+              onChange={(e) => setNewTag(e.target.value)}
+              placeholder="תגית חדשה..."
+              className="flex-1 min-w-[180px] p-2 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:border-blue-400"
+            />
+            <button onClick={addTag} className="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-slate-800">הוסף תגית</button>
+          </div>
         </div>
-        <div className="flex-1 w-full">
-          <label className="text-xs font-bold text-gray-400 mb-1 block uppercase">קישור</label>
-          <input type="text" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-left" placeholder="https://..." dir="ltr" value={newLink.url} onChange={e => setNewLink({...newLink, url: e.target.value})}/>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-dashed border-gray-200">
+          <div className="flex-1 w-full">
+            <label className="text-xs font-bold text-gray-400 mb-1 block uppercase">שם המסמך</label>
+            <input type="text" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" placeholder="למשל: לוגו וקטורי" value={newLink.name} onChange={e => setNewLink({...newLink, name: e.target.value})}/>
+          </div>
+          <div className="flex-1 w-full">
+            <label className="text-xs font-bold text-gray-400 mb-1 block uppercase">קישור</label>
+            <input type="text" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-left" placeholder="https://..." dir="ltr" value={newLink.url} onChange={e => setNewLink({...newLink, url: e.target.value, type: 'link'})}/>
+          </div>
         </div>
-        <button onClick={addLink} className="w-full md:w-auto bg-blue-600 text-white p-3 rounded-xl hover:bg-blue-700 font-bold px-6">שמור קישור</button>
+
+        <div className="flex flex-wrap gap-2 justify-start">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="px-4 py-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-sm font-bold text-slate-700 flex items-center gap-2"
+          >
+            <ImageIcon size={16} />
+            העלה קובץ
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            onChange={handleFileSelect}
+            accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+          />
+          <button onClick={addLink} className="px-5 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700">שמור קישור</button>
+        </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {links.map(link => (
           <div key={link.id} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between hover:border-blue-300 transition-all group">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
-                <ImageIcon />
+              <div className="w-14 h-14 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 overflow-hidden border border-blue-100">
+                {link.type === 'file' || /\.(png|jpe?g|gif|webp|svg)$/i.test(link.url || '') ? (
+                  <img src={link.url} alt={link.name} className="w-full h-full object-cover" />
+                ) : (
+                  <ImageIcon />
+                )}
               </div>
-              <div>
-                <h4 className="font-bold text-gray-800 text-lg">{link.name}</h4>
-                <a href={link.url} target="_blank" rel="noreferrer" className="text-xs text-blue-500 hover:underline truncate max-w-[200px] block" dir="ltr">
+              <div className="min-w-0">
+                <h4 className="font-bold text-gray-800 text-lg truncate">{link.name}</h4>
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <select
+                    value={link.tag || ''}
+                    onChange={(e) => updateExistingTag(link.id, e.target.value)}
+                    className="px-2 py-1 rounded-full border border-gray-200 bg-gray-50 text-gray-700 text-xs outline-none focus:border-blue-400"
+                  >
+                    {[...tags, link.tag].filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i).map(tag => (
+                      <option key={tag} value={tag}>{tag}</option>
+                    ))}
+                  </select>
+                  {link.type === 'file' && <span className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full">קובץ</span>}
+                </div>
+                <a href={link.url} target="_blank" rel="noreferrer" className="text-xs text-blue-500 hover:underline truncate max-w-[220px] block" dir="ltr">
                   {link.url}
                 </a>
               </div>
             </div>
-            <button onClick={() => onUpdate(links.filter(l => l.id !== link.id))} className="text-gray-300 hover:text-red-500 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onClick={() => {
+                const doDelete = () => onUpdate(links.filter(l => l.id !== link.id));
+                if (openConfirm) {
+                  openConfirm({ message: `למחוק את "${link.name}"?`, onConfirm: doDelete });
+                } else if (window.confirm(`למחוק את "${link.name}"?`)) {
+                  doDelete();
+                }
+              }}
+              className="text-gray-300 hover:text-red-500 p-2 opacity-0 group-hover:opacity-100 transition-opacity"
+            >
               <Trash2 size={20} />
             </button>
           </div>
@@ -724,16 +1189,25 @@ function LinksTab({ links, onUpdate }) {
 function InfoTab({ contact, onUpdate }) {
   const [isEditing, setIsEditing] = useState(false);
   const [tempContact, setTempContact] = useState(contact);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const openDialog = () => { setTempContact(contact); setDialogOpen(true); };
+  const saveDialog = () => { onUpdate(tempContact); setDialogOpen(false); };
   const handleSave = () => { onUpdate(tempContact); setIsEditing(false); };
   const handleCancel = () => { setTempContact(contact); setIsEditing(false); };
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      <ContactDialog open={dialogOpen} contact={tempContact} onChange={setTempContact} onClose={() => { setDialogOpen(false); setTempContact(contact); }} onSave={saveDialog} />
       <div className="flex justify-between items-center">
         <h3 className="text-xl font-bold text-gray-800">כרטיס ביקור דיגיטלי</h3>
         {!isEditing ? (
-          <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 bg-slate-800 text-white px-5 py-2 rounded-full font-bold hover:bg-slate-700 transition-all">
-            <Edit2 size={16} /> ערוך פרטים
-          </button>
+          <div className="flex gap-2">
+            <button onClick={openDialog} className="p-2 rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50" title="עריכה מפורטת">
+              <Edit2 size={16} />
+            </button>
+            <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 bg-slate-800 text-white px-5 py-2 rounded-full font-bold hover:bg-slate-700 transition-all">
+              <Edit2 size={16} /> ערוך פרטים
+            </button>
+          </div>
         ) : (
           <div className="flex gap-2">
             <button onClick={handleCancel} className="px-5 py-2 rounded-full font-bold text-gray-500 hover:bg-gray-200">ביטול</button>
@@ -781,6 +1255,37 @@ function InfoTab({ contact, onUpdate }) {
   );
 }
 
+function ContactDialog({ open, contact, onChange, onClose, onSave }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 border border-gray-100 space-y-4">
+        <div className="flex justify-between items-start">
+          <div>
+            <h4 className="text-lg font-black text-gray-800">עריכת פרטי קשר</h4>
+            <p className="text-xs text-gray-500">עדכן טלפון, מייל וקישורים מרכזיים.</p>
+          </div>
+          <button className="text-gray-400 hover:text-gray-600" onClick={onClose}>
+            <X size={18} />
+          </button>
+        </div>
+        <div className="space-y-3">
+          <input value={contact.phone} onChange={e => onChange({...contact, phone: e.target.value})} placeholder="טלפון" className="w-full p-3 bg-gray-50 border rounded-xl outline-none"/>
+          <input value={contact.email} onChange={e => onChange({...contact, email: e.target.value})} placeholder="אימייל" className="w-full p-3 bg-gray-50 border rounded-xl outline-none"/>
+          <input value={contact.website} onChange={e => onChange({...contact, website: e.target.value})} placeholder="אתר" className="w-full p-3 bg-gray-50 border rounded-xl outline-none" dir="ltr"/>
+          <input value={contact.instagram} onChange={e => onChange({...contact, instagram: e.target.value})} placeholder="אינסטגרם" className="w-full p-3 bg-gray-50 border rounded-xl outline-none"/>
+          <input value={contact.facebook} onChange={e => onChange({...contact, facebook: e.target.value})} placeholder="פייסבוק" className="w-full p-3 bg-gray-50 border rounded-xl outline-none"/>
+          <textarea value={contact.notes} onChange={e => onChange({...contact, notes: e.target.value})} placeholder="הערות" className="w-full p-3 bg-gray-50 border rounded-xl outline-none h-24"/>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={onSave} className="flex-1 py-3 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800">שמור</button>
+          <button onClick={onClose} className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-700 font-bold hover:bg-gray-50">ביטול</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ContactField({ icon: Icon, label, value, isEditing, onChange, action, actionLabel, actionColor, customView }) {
   if (customView) return customView;
   return (
@@ -806,55 +1311,89 @@ function ContactField({ icon: Icon, label, value, isEditing, onChange, action, a
   );
 }
 
-function VerificationTab({ project, onUpdate }) {
-  if (!project) return (
-    <div className="text-center py-20 text-gray-400">
-      <h3 className="text-xl font-bold">אין פרויקט פעיל</h3>
-      <p>כדי לאשר משימות, יש ליצור פרויקט בטאב "ניהול פרויקט".</p>
-    </div>
-  );
-  const toggleApprove = (index) => { const newStages = [...project.stages]; newStages[index].isApproved = !newStages[index].isApproved; onUpdate({ ...project, stages: newStages }); };
-  const completedCount = project.stages.filter(s => s.isApproved).length;
+function VerificationTab({ tasks, onUpdateTasks }) {
+  const [newTask, setNewTask] = useState("");
+  const [filter, setFilter] = useState("all");
+
+  const addTask = () => {
+    const text = newTask.trim();
+    if (!text) return;
+    const updated = [...tasks, { id: Date.now(), text, done: false }];
+    onUpdateTasks(updated);
+    setNewTask("");
+  };
+
+  const toggleTask = (id) => {
+    onUpdateTasks(tasks.map(t => t.id === id ? { ...t, done: !t.done } : t));
+  };
+
+  const deleteTask = (id) => {
+    onUpdateTasks(tasks.filter(t => t.id !== id));
+  };
+
+  const visible = tasks.filter(t => {
+    if (filter === "done") return t.done;
+    if (filter === "open") return !t.done;
+    return true;
+  });
+
   return (
-    <div className="max-w-3xl mx-auto">
-      <div className="bg-indigo-900 text-white p-8 rounded-3xl mb-8 flex justify-between items-center shadow-xl">
-        <div>
-          <h3 className="text-2xl font-black">בקרת איכות ואישור משימות</h3>
-          <p className="text-indigo-200">סמן כל שלב שהושלם ואושר סופית מול הלקוח</p>
+    <div className="max-w-3xl mx-auto space-y-6">
+      <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm">
+        <h3 className="text-2xl font-black text-gray-800 mb-2">לוח משימות</h3>
+        <p className="text-gray-500 text-sm mb-4">נהל משימות בוצע/לא בוצע ללא קשר לשלבי הפרויקט.</p>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input
+            type="text"
+            value={newTask}
+            onChange={(e) => setNewTask(e.target.value)}
+            placeholder="הוסף משימה חדשה..."
+            className="flex-1 p-3 rounded-xl border border-gray-200 bg-gray-50 outline-none focus:border-blue-400"
+            onKeyDown={(e) => { if (e.key === 'Enter') addTask(); }}
+          />
+          <button
+            onClick={addTask}
+            className="px-5 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700"
+          >
+            הוסף משימה
+          </button>
         </div>
-        <div className="text-center bg-white/10 p-4 rounded-2xl backdrop-blur-md">
-          <span className="block text-3xl font-bold">{completedCount} / {project.stages.length}</span>
-          <span className="text-xs uppercase tracking-widest opacity-70">הושלמו</span>
+        <div className="mt-4 flex gap-2">
+          {['all','open','done'].map(f => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`px-3 py-1 rounded-full text-sm border ${filter === f ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}
+            >
+              {f === 'all' ? 'הכול' : f === 'open' ? 'פתוחות' : 'בוצעו'}
+            </button>
+          ))}
         </div>
       </div>
-      <div className="space-y-4">
-        {project.stages.map((stage, index) => (
-          <div key={index} className={`relative p-6 rounded-2xl border-2 transition-all duration-300 flex items-center justify-between group ${stage.isApproved ? 'bg-green-50 border-green-500 shadow-none' : 'bg-white border-gray-100 hover:border-blue-200 shadow-sm hover:shadow-md'}`}>
-            <div className="flex items-center gap-6">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg ${stage.isApproved ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-400'}`}>
-                {stage.isApproved ? <Check size={20} /> : index + 1}
-              </div>
-              <div>
-                <h4 className={`text-xl font-bold ${stage.isApproved ? 'text-green-800 line-through opacity-70' : 'text-gray-800'}`}>
-                  {stage.name}
-                </h4>
-                <div className="text-sm text-gray-500 mt-1 flex gap-4">
-                  <span>אחראי: {stage.assignee || 'טרם נקבע'}</span>
-                  {stage.note && <span className="text-gray-400 truncate max-w-[200px]">| {stage.note}</span>}
-                </div>
-              </div>
+
+      <div className="space-y-3">
+        {visible.map(task => (
+          <div key={task.id} className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center justify-between shadow-sm">
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                checked={task.done}
+                onChange={() => toggleTask(task.id)}
+                className="w-5 h-5 accent-blue-600"
+              />
+              <span className={`font-medium ${task.done ? 'text-gray-400 line-through' : 'text-gray-800'}`}>{task.text}</span>
             </div>
-            <button onClick={() => toggleApprove(index)} className={`px-6 py-3 rounded-xl font-bold transition-all transform active:scale-95 ${stage.isApproved ? 'bg-white text-green-600 border border-green-200 hover:bg-red-50 hover:text-red-500 hover:border-red-200' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-200'}`}>
-              {stage.isApproved ? 'בטל אישור' : 'אשר ביצוע'}
+            <button onClick={() => deleteTask(task.id)} className="text-gray-400 hover:text-red-500">
+              <Trash2 size={18} />
             </button>
           </div>
         ))}
+        {visible.length === 0 && (
+          <div className="text-center text-gray-400 py-8 border border-dashed border-gray-200 rounded-2xl">
+            אין משימות להצגה.
+          </div>
+        )}
       </div>
-      {completedCount === project.stages.length && (
-        <div className="mt-10 text-center animate-bounce">
-          <span className="inline-block bg-yellow-400 text-yellow-900 px-6 py-2 rounded-full font-bold shadow-lg">🎉 כל המשימות הושלמו בהצלחה!</span>
-        </div>
-      )}
     </div>
   );
 }
@@ -866,5 +1405,42 @@ function TabButton({ id, icon: Icon, label, active, onClick }) {
       <Icon size={isActive ? 20 : 18} className={isActive ? "text-blue-600" : ""} />
       {label}
     </button>
+  );
+}
+
+function Sidebar() {
+  const mainButtonClasses =
+    "w-10 h-10 rounded-2xl flex items-center justify-center hover:bg-slate-800 transition-colors cursor-pointer";
+  const iconClasses = "w-5 h-5";
+
+  return (
+    <aside className="hidden md:flex flex-col items-center gap-4 w-20 bg-slate-900 text-slate-100 py-6 border-l border-slate-800">
+      {/* לוגו קטן בצד */}
+      <div className="w-10 h-10 rounded-2xl bg-slate-800 flex items-center justify-center mb-4">
+        <Folder className="w-5 h-5 text-slate-200" />
+      </div>
+
+      {/* כפתורי ניווט עיקריים */}
+      <button className={mainButtonClasses} title="לקוחות">
+        <Users className={iconClasses} />
+      </button>
+      <button className={mainButtonClasses} title="פרויקטים">
+        <Layout className={iconClasses} />
+      </button>
+      <button className={mainButtonClasses} title="תוצאות ודוחות">
+        <BarChart2 className={iconClasses} />
+      </button>
+      <button className={mainButtonClasses} title="תזכורות ווואטסאפ">
+        <MessageCircle className={iconClasses} />
+      </button>
+
+      {/* מפריד קטן */}
+      <div className="w-8 h-px bg-slate-700 my-2" />
+
+      {/* כפתור הגדרות / פרופיל */}
+      <button className={mainButtonClasses} title="הגדרות">
+        <User className={iconClasses} />
+      </button>
+    </aside>
   );
 }
