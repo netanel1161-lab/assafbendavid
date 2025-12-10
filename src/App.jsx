@@ -32,7 +32,7 @@ import {
 // --- הגדרות כלליות ---
 
 // לוגו הדוגמה (באתר אמיתי מומלץ להחליף לקישור הישיר שמסתיים ב-.jpg/.png)
-const BRAND_LOGO = "https://i.ibb.co/Xx8XpBQ/logo.png"; // השתמשתי בקישור הדמיה, יש להחליף ללינק הישיר אם לא עובד
+const BRAND_LOGO = "/media/images/logo.svg";
 const BRAND_NAME = "ASSAF BEN DAVID - ADV";
 const MY_PHONE_NUMBER = "972508504833"; // המספר שלך לשליחת התזכורות
 
@@ -184,9 +184,9 @@ export default function App() {
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-3">
             {/* לוגו בעיגול ליד השם */}
-            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center overflow-hidden border-2 border-gray-100 shadow-sm">
-                <img src="/media/images/logo.svg" alt="Logo" className="w-10 h-10 object-contain" />
-            </div>
+                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center overflow-hidden border-2 border-gray-100 shadow-sm">
+                    <img src={BRAND_LOGO} alt="Logo" className="w-10 h-10 object-contain" />
+                </div>
             <div>
               <h1 className="text-xl font-black text-slate-900 tracking-tight uppercase">{BRAND_NAME}</h1>
               <p className="text-slate-500 text-xs font-medium">ניהול לקוחות מתקדם</p>
@@ -703,6 +703,18 @@ function ProjectTab({ project, onUpdate }) {
       })()
     : null;
 
+  const stickyInputRef = React.useRef(null);
+  const addStickyNote = () => {
+    const val = stickyInputRef.current?.value.trim();
+    if (!val) return;
+    const updatedStages = [...project.stages];
+    const list = updatedStages[project.currentStageIndex].stickyNotes || [];
+    list.push({ id: Date.now(), text: val });
+    updatedStages[project.currentStageIndex].stickyNotes = list;
+    onUpdate({ ...project, stages: updatedStages });
+    stickyInputRef.current.value = '';
+  };
+
   const markStageDone = () => {
     const updatedStages = [...project.stages];
     updatedStages[project.currentStageIndex].isApproved = true;
@@ -776,36 +788,19 @@ function ProjectTab({ project, onUpdate }) {
              </div>
              <div className="flex gap-2 mb-3">
                <input
+                 ref={stickyInputRef}
                  type="text"
                  placeholder="כתוב פתק קצר..."
                  className="flex-1 p-3 rounded-xl border border-amber-200 bg-amber-50 outline-none focus:border-amber-300 text-sm"
-                 id="newStickyNote"
                  onKeyDown={(e) => {
                    if (e.key === 'Enter') {
-                     const val = e.currentTarget.value.trim();
-                     if (!val) return;
-                     const updatedStages = [...project.stages];
-                     const list = updatedStages[project.currentStageIndex].stickyNotes || [];
-                     list.push({ id: Date.now(), text: val });
-                     updatedStages[project.currentStageIndex].stickyNotes = list;
-                     onUpdate({ ...project, stages: updatedStages });
-                     e.currentTarget.value = '';
+                     addStickyNote();
                    }
                  }}
                />
                <button
                  className="px-3 py-2 rounded-xl bg-amber-500 text-white text-sm font-bold hover:bg-amber-600"
-                 onClick={() => {
-                   const input = document.getElementById('newStickyNote');
-                   const val = input?.value.trim();
-                   if (!val) return;
-                   const updatedStages = [...project.stages];
-                   const list = updatedStages[project.currentStageIndex].stickyNotes || [];
-                   list.push({ id: Date.now(), text: val });
-                   updatedStages[project.currentStageIndex].stickyNotes = list;
-                   onUpdate({ ...project, stages: updatedStages });
-                   input.value = '';
-                 }}
+                 onClick={addStickyNote}
                >
                  הוסף פתק
                </button>
@@ -853,163 +848,156 @@ function ProjectTab({ project, onUpdate }) {
         </div>
 
         {/* כרטיס סטטוס */}
-          <div className="bg-white border-2 border-slate-100 p-8 rounded-3xl flex flex-col justify-between relative overflow-hidden shadow-lg shadow-slate-200/50">
+        <div className="bg-white border border-gray-100 p-6 rounded-3xl flex flex-col gap-6 shadow-sm">
           <div>
-            <h4 className="text-slate-400 font-bold text-sm uppercase mb-4 tracking-widest">סטטוס פרויקט</h4>
-            <div className="flex items-baseline gap-2">
-              <div className="text-5xl font-black text-slate-800">{progress}%</div>
-              <span className="text-slate-400 font-medium">הושלם</span>
+            <div className="text-sm text-gray-500 font-bold">סטטוס פרויקט</div>
+            <div className="flex items-end gap-2">
+              <div className="text-5xl font-black text-gray-800">{progress}%</div>
+              <span className="text-gray-500">הושלם</span>
+            </div>
+            <div className="mt-4 space-y-2">
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="block text-xs font-bold text-gray-500 mb-1">תאריך יעד</label>
+                  <input
+                    type="date"
+                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-medium outline-none"
+                    value={currentStage.dueDate || ''}
+                    onChange={(e) => {
+                      const updatedStages = [...project.stages];
+                      updatedStages[project.currentStageIndex].dueDate = e.target.value;
+                      onUpdate({ ...project, stages: updatedStages });
+                    }}
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs font-bold text-gray-500 mb-1">שעת יעד</label>
+                  <input
+                    type="time"
+                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-medium outline-none"
+                    value={currentStage.dueTime || ''}
+                    onChange={(e) => {
+                      const updatedStages = [...project.stages];
+                      updatedStages[project.currentStageIndex].dueTime = e.target.value;
+                      onUpdate({ ...project, stages: updatedStages });
+                    }}
+                  />
+                </div>
+              </div>
+              {currentStage.dueDate && (
+                <div className="text-xs text-blue-700 bg-blue-50 px-3 py-2 rounded-xl font-bold">
+                  דד-ליין: {currentStage.dueDate} {currentStage.dueTime} {timeToDeadline && `· נותרו ${timeToDeadline}`}
+                </div>
+              )}
             </div>
 
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-bold text-gray-500 mb-1">תאריך יעד</label>
-                <input
-                  type="date"
-                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-medium outline-none"
-                  value={currentStage.dueDate || ''}
-                  onChange={(e) => {
-                    const updatedStages = [...project.stages];
-                    updatedStages[project.currentStageIndex].dueDate = e.target.value;
-                    onUpdate({ ...project, stages: updatedStages });
-                  }}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-gray-500 mb-1">שעת יעד</label>
-                <input
-                  type="time"
-                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-medium outline-none"
-                  value={currentStage.dueTime || ''}
-                  onChange={(e) => {
-                    const updatedStages = [...project.stages];
-                    updatedStages[project.currentStageIndex].dueTime = e.target.value;
-                    onUpdate({ ...project, stages: updatedStages });
-                  }}
-                />
-              </div>
-            </div>
-
-            {currentStage.dueDate && (
-              <div className="mt-3 text-sm text-gray-600 flex items-center gap-2">
-                <span className="px-2 py-1 rounded-full bg-blue-50 text-blue-700 font-bold">
-                  דד-ליין: {currentStage.dueDate} {currentStage.dueTime}
-                </span>
-                {timeToDeadline && <span className="text-xs text-gray-500">נותרו {timeToDeadline}</span>}
-              </div>
-            )}
-
-            {/* Progress Bar */}
             <div className="w-full bg-slate-100 h-2 rounded-full mt-4 overflow-hidden">
                <div className="bg-blue-600 h-full rounded-full transition-all duration-500" style={{width: `${progress}%`}}></div>
             </div>
           </div>
 
-          <div className="mt-8 space-y-4 relative z-10">
-            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-              <div className="text-xs text-slate-400 mb-1 font-bold">אחראי שלב נוכחי</div>
-              <div className="font-bold flex items-center gap-2 text-slate-800">
-                <User size={16} className="text-blue-500" />
-                {currentStage.assignee || "טרם שובץ"}
+          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+            <div className="text-xs text-slate-400 mb-1 font-bold">אחראי שלב נוכחי</div>
+            <div className="font-bold flex items-center gap-2 text-slate-800">
+              <User size={16} className="text-blue-500" />
+              {currentStage.assignee || "טרם שובץ"}
+            </div>
+          </div>
+
+          {recentReminders.length > 0 && (
+            <div className="bg-white p-4 rounded-2xl border border-slate-100">
+              <div className="text-xs text-slate-400 mb-2 font-bold">תזכורות אחרונות</div>
+              <div className="space-y-2">
+                {recentReminders.map(reminder => (
+                  <div key={reminder.id} className="text-xs text-slate-600 border-b border-slate-100 pb-2 last:border-none last:pb-0">
+                    <div className="flex justify-between gap-2 items-center">
+                      <span className="font-semibold">{reminder.contact}</span>
+                      <span className="text-slate-400">{new Date(reminder.date).toLocaleDateString()} · {new Date(reminder.date).toLocaleTimeString()}</span>
+                    </div>
+                    <p className="text-slate-500">{reminder.msg}</p>
+                    <button
+                      className="text-red-500 hover:text-red-600 mt-1"
+                      onClick={() => {
+                        const remaining = (project.reminders || []).filter(r => r.id !== reminder.id);
+                        onUpdate({ ...project, reminders: remaining });
+                      }}
+                    >
+                      מחק מהלוג
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
+          )}
 
-            {recentReminders.length > 0 && (
-              <div className="bg-white p-4 rounded-xl border border-slate-100">
-                <div className="text-xs text-slate-400 mb-2 font-bold">תזכורות אחרונות</div>
-                <div className="space-y-2">
-                  {recentReminders.map(reminder => (
-                    <div key={reminder.id} className="text-xs text-slate-600 border-b border-slate-100 pb-2 last:border-none last:pb-0">
-                      <div className="flex justify-between gap-2 items-center">
-                        <span className="font-semibold">{reminder.contact}</span>
-                        <span className="text-slate-400">{new Date(reminder.date).toLocaleDateString()} · {new Date(reminder.date).toLocaleTimeString()}</span>
-                      </div>
-                      <p className="text-slate-500">{reminder.msg}</p>
-                      <button
-                        className="text-red-500 hover:text-red-600 mt-1"
-                        onClick={() => {
-                          const remaining = (project.reminders || []).filter(r => r.id !== reminder.id);
-                          onUpdate({ ...project, reminders: remaining });
-                        }}
-                      >
-                        מחק מהלוג
-                      </button>
-                    </div>
-                  ))}
-                </div>
+          {!reminderOpen ? (
+            <button 
+              onClick={() => setReminderOpen(true)}
+              className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-blue-200 shadow-lg flex justify-center items-center gap-2"
+            >
+              <MessageCircle size={18} />
+              שלח תזכורת
+            </button>
+          ) : (
+            <div className="bg-white p-4 rounded-xl border border-blue-200 shadow-md relative flex flex-col">
+              <div className="flex justify-between items-center mb-2">
+                <span className="font-bold text-sm text-blue-600">שליחת תזכורת</span>
+                <button onClick={() => setReminderOpen(false)}><X size={16} className="text-gray-400"/></button>
               </div>
-            )}
 
-            {/* אזור תזכורת משופר */}
-            {!reminderOpen ? (
-              <button 
-                onClick={() => setReminderOpen(true)}
-                className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-blue-200 shadow-lg flex justify-center items-center gap-2"
+              <select 
+                className="w-full p-2 bg-slate-50 border rounded-lg text-sm mb-2"
+                value={reminderContact}
+                onChange={e => setReminderContact(e.target.value)}
               >
-                <MessageCircle size={18} />
-                שלח תזכורת
-              </button>
-            ) : (
-              <div className="bg-white p-4 rounded-xl border border-blue-200 shadow-md absolute inset-0 z-20 flex flex-col">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="font-bold text-sm text-blue-600">שליחת תזכורת</span>
-                  <button onClick={() => setReminderOpen(false)}><X size={16} className="text-gray-400"/></button>
-                </div>
+                <option value="">בחר למי לשלוח...</option>
+                {TEAM_MEMBERS.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
 
-                <select 
-                  className="w-full p-2 bg-slate-50 border rounded-lg text-sm mb-2"
-                  value={reminderContact}
-                  onChange={e => setReminderContact(e.target.value)}
-                >
-                  <option value="">בחר למי לשלוח...</option>
-                  {TEAM_MEMBERS.map(m => <option key={m} value={m}>{m}</option>)}
-                </select>
-
-                <div className="flex gap-2 mb-2">
-                  <input
-                    type="date"
-                    className="flex-1 p-2 bg-slate-50 border rounded-lg text-sm"
-                    value={reminderDate}
-                    onChange={e => setReminderDate(e.target.value)}
-                  />
-                  <input
-                    type="time"
-                    className="flex-1 p-2 bg-slate-50 border rounded-lg text-sm"
-                    value={reminderTime}
-                    onChange={e => setReminderTime(e.target.value)}
-                  />
-                </div>
-
-                <textarea 
-                  className="w-full p-2 bg-slate-50 border rounded-lg text-sm mb-2 resize-none h-20"
-                  placeholder="תוכן ההודעה..."
-                  value={reminderMsg}
-                  onChange={e => setReminderMsg(e.target.value)}
-                ></textarea>
-
-                <button 
-                  onClick={sendWhatsAppReminder}
-                  className="mt-auto w-full py-2 bg-green-500 text-white rounded-lg font-bold text-sm flex items-center justify-center gap-2 hover:bg-green-600"
-                >
-                  <Send size={14} /> שלח לוואטסאפ
-                </button>
-                {reminderDate && (
-                  <a
-                    className="mt-2 text-xs text-blue-600 hover:underline text-center"
-                    href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('תזכורת פרויקט: ' + project.name)}&details=${encodeURIComponent(reminderMsg || '')}&dates=${(() => {
-                      const dateStr = reminderDate.replace(/-/g,'');
-                      const timeStr = reminderTime ? reminderTime.replace(':','') : '0900';
-                      return `${dateStr}T${timeStr}00/${dateStr}T${timeStr}00`;
-                    })()}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    הוסף ליומן גוגל
-                  </a>
-                )}
+              <div className="flex gap-2 mb-2">
+                <input
+                  type="date"
+                  className="flex-1 p-2 bg-slate-50 border rounded-lg text-sm"
+                  value={reminderDate}
+                  onChange={e => setReminderDate(e.target.value)}
+                />
+                <input
+                  type="time"
+                  className="flex-1 p-2 bg-slate-50 border rounded-lg text-sm"
+                  value={reminderTime}
+                  onChange={e => setReminderTime(e.target.value)}
+                />
               </div>
-            )}
-          </div>
+
+              <textarea 
+                className="w-full p-2 bg-slate-50 border rounded-lg text-sm mb-2 resize-none h-20"
+                placeholder="תוכן ההודעה..."
+                value={reminderMsg}
+                onChange={e => setReminderMsg(e.target.value)}
+              ></textarea>
+
+              <button 
+                onClick={sendWhatsAppReminder}
+                className="mt-auto w-full py-2 bg-green-500 text-white rounded-lg font-bold text-sm flex items-center justify-center gap-2 hover:bg-green-600"
+              >
+                <Send size={14} /> שלח לוואטסאפ
+              </button>
+              {reminderDate && (
+                <a
+                  className="mt-2 text-xs text-blue-600 hover:underline text-center"
+                  href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('תזכורת פרויקט: ' + project.name)}&details=${encodeURIComponent(reminderMsg || '')}&dates=${(() => {
+                    const dateStr = reminderDate.replace(/-/g,'');
+                    const timeStr = reminderTime ? reminderTime.replace(':','') : '0900';
+                    return `${dateStr}T${timeStr}00/${dateStr}T${timeStr}00`;
+                  })()}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  הוסף ליומן גוגל
+                </a>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1189,57 +1177,149 @@ function LinksTab({ links, onUpdate, openConfirm }) {
 function InfoTab({ contact, onUpdate }) {
   const [isEditing, setIsEditing] = useState(false);
   const [tempContact, setTempContact] = useState(contact);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const openDialog = () => { setTempContact(contact); setDialogOpen(true); };
-  const saveDialog = () => { onUpdate(tempContact); setDialogOpen(false); };
   const handleSave = () => { onUpdate(tempContact); setIsEditing(false); };
   const handleCancel = () => { setTempContact(contact); setIsEditing(false); };
+
+  const phoneDigits = tempContact.phone ? tempContact.phone.replace(/\D/g, '') : '';
+  const waPhone = phoneDigits
+    ? (phoneDigits.startsWith('972') ? phoneDigits : `972${phoneDigits.replace(/^0/, '')}`)
+    : '';
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <ContactDialog open={dialogOpen} contact={tempContact} onChange={setTempContact} onClose={() => { setDialogOpen(false); setTempContact(contact); }} onSave={saveDialog} />
+    <div className="max-w-5xl mx-auto space-y-6">
       <div className="flex justify-between items-center">
-        <h3 className="text-xl font-bold text-gray-800">כרטיס ביקור דיגיטלי</h3>
+        <h3 className="text-2xl font-black text-gray-800">כרטיס ביקור דיגיטלי</h3>
         {!isEditing ? (
-          <div className="flex gap-2">
-            <button onClick={openDialog} className="p-2 rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50" title="עריכה מפורטת">
-              <Edit2 size={16} />
-            </button>
-            <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 bg-slate-800 text-white px-5 py-2 rounded-full font-bold hover:bg-slate-700 transition-all">
-              <Edit2 size={16} /> ערוך פרטים
-            </button>
-          </div>
+          <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 bg-slate-900 text-white px-5 py-2 rounded-full font-bold hover:bg-slate-800 transition-all shadow-sm">
+            <Edit2 size={16} /> ערוך פרטים
+          </button>
         ) : (
           <div className="flex gap-2">
-            <button onClick={handleCancel} className="px-5 py-2 rounded-full font-bold text-gray-500 hover:bg-gray-200">ביטול</button>
+            <button onClick={handleCancel} className="px-5 py-2 rounded-full font-bold text-gray-600 hover:bg-gray-100 border border-gray-200">ביטול</button>
             <button onClick={handleSave} className="flex items-center gap-2 bg-green-600 text-white px-5 py-2 rounded-full font-bold hover:bg-green-700 shadow-lg">
-              <Save size={16} /> שמור שינויים
+              <Save size={16} /> שמור
             </button>
           </div>
         )}
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 space-y-6">
-          <div className="flex items-center gap-3 text-gray-400 font-bold text-sm uppercase border-b pb-4 mb-4">
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 bg-white rounded-3xl border border-gray-100 shadow-sm p-6 space-y-4">
+          <div className="flex items-center gap-3 text-gray-500 font-bold text-sm uppercase border-b pb-4">
             <Smartphone size={18} /> ערוצי תקשורת
           </div>
-          <ContactField icon={Phone} label="טלפון" value={tempContact.phone} isEditing={isEditing} onChange={v => setTempContact({...tempContact, phone: v})} action={() => window.open(`tel:${tempContact.phone}`)} actionLabel="חייג" actionColor="bg-green-500"/>
-          <ContactField icon={MessageCircle} label="וואטסאפ (טלפון)" value={tempContact.phone} isEditing={false} customView={!isEditing && (
-            <button onClick={() => tempContact.phone && window.open(`https://wa.me/972${tempContact.phone.replace(/-/g, '').substring(1)}`)} className="w-full py-3 bg-green-50 text-green-700 font-bold rounded-xl hover:bg-green-100 flex items-center justify-center gap-2 transition-colors">
-              <MessageCircle size={18} /> שלח הודעה בוואטסאפ
-            </button>
-          )}/>
-          <ContactField icon={Mail} label="אימייל" value={tempContact.email} isEditing={isEditing} onChange={v => setTempContact({...tempContact, email: v})} action={() => window.open(`mailto:${tempContact.email}`)} actionLabel="שלח מייל" actionColor="bg-blue-500"/>
-          <ContactField icon={Globe} label="אתר אינטרנט" value={tempContact.website} isEditing={isEditing} onChange={v => setTempContact({...tempContact, website: v})} action={() => window.open(tempContact.website, '_blank')} actionLabel="בקר באתר" actionColor="bg-indigo-500"/>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-gray-50 rounded-2xl border border-gray-100 p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-gray-500 font-bold uppercase">טלפון</span>
+                {!isEditing && waPhone && (
+                  <span className="px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold">חיוג</span>
+                )}
+              </div>
+              {isEditing ? (
+                <input
+                  value={tempContact.phone}
+                  onChange={e => setTempContact({...tempContact, phone: e.target.value})}
+                  className="w-full p-3 rounded-xl border border-gray-200 bg-white outline-none focus:border-blue-400"
+                  placeholder="050-0000000"
+                />
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <span className="text-xl font-black text-slate-800">{tempContact.phone || '---'}</span>
+                  <div className="flex gap-2">
+                    {tempContact.phone && (
+                      <>
+                        <button onClick={() => window.open(`tel:${tempContact.phone}`)} className="px-3 py-2 rounded-xl bg-green-500 text-white text-sm font-bold hover:bg-green-600">חייג</button>
+                        <button onClick={() => waPhone && window.open(`https://wa.me/${waPhone}`)} className="px-3 py-2 rounded-xl bg-green-50 text-green-700 text-sm font-bold hover:bg-green-100 flex items-center gap-1">
+                          <MessageCircle size={14} /> וואטסאפ
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="bg-gray-50 rounded-2xl border border-gray-100 p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-gray-500 font-bold uppercase">אימייל</span>
+                {!isEditing && tempContact.email && <span className="text-gray-400 text-xs">שלח מייל</span>}
+              </div>
+              {isEditing ? (
+                <input
+                  value={tempContact.email}
+                  onChange={e => setTempContact({...tempContact, email: e.target.value})}
+                  className="w-full p-3 rounded-xl border border-gray-200 bg-white outline-none focus:border-blue-400"
+                  placeholder="email@example.com"
+                />
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <span className="text-lg font-bold text-slate-800">{tempContact.email || '---'}</span>
+                  {tempContact.email && (
+                    <button onClick={() => window.open(`mailto:${tempContact.email}`)} className="px-3 py-2 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 w-fit">שלח מייל</button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="bg-gray-50 rounded-2xl border border-gray-100 p-4 md:col-span-2">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-gray-500 font-bold uppercase">אתר אינטרנט</span>
+                {!isEditing && tempContact.website && <span className="text-gray-400 text-xs">בקר באתר</span>}
+              </div>
+              {isEditing ? (
+                <input
+                  value={tempContact.website}
+                  onChange={e => setTempContact({...tempContact, website: e.target.value})}
+                  className="w-full p-3 rounded-xl border border-gray-200 bg-white outline-none focus:border-blue-400 text-left"
+                  placeholder="https://..."
+                  dir="ltr"
+                />
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <span className="text-lg font-bold text-slate-800 break-all" dir="ltr">{tempContact.website || '---'}</span>
+                  {tempContact.website && (
+                    <button onClick={() => window.open(tempContact.website, '_blank')} className="px-3 py-2 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 w-fit">בקר באתר</button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-        <div className="space-y-6">
-          <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 space-y-6">
-            <div className="flex items-center gap-3 text-gray-400 font-bold text-sm uppercase border-b pb-4 mb-4">
+
+        <div className="space-y-4">
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 space-y-3">
+            <div className="flex items-center gap-3 text-gray-500 font-bold text-sm uppercase border-b pb-3">
               <Instagram size={18} /> סושיאל
             </div>
-            <ContactField icon={Instagram} label="אינסטגרם" value={tempContact.instagram} isEditing={isEditing} onChange={v => setTempContact({...tempContact, instagram: v})} action={() => window.open(`https://instagram.com/${tempContact.instagram}`, '_blank')} actionLabel="פתח" actionColor="bg-pink-600"/>
-            <ContactField icon={Facebook} label="פייסבוק" value={tempContact.facebook} isEditing={isEditing} onChange={v => setTempContact({...tempContact, facebook: v})} action={() => tempContact.facebook && window.open(`https://www.facebook.com/search/top?q=${encodeURIComponent(tempContact.facebook)}`, '_blank')} actionLabel="פתח" actionColor="bg-blue-700"/>
+            <div className="space-y-3">
+              <div>
+                <div className="text-xs text-gray-500 font-bold uppercase mb-1">אינסטגרם</div>
+                {isEditing ? (
+                  <input value={tempContact.instagram} onChange={e => setTempContact({...tempContact, instagram: e.target.value})} className="w-full p-3 rounded-xl border border-gray-200 bg-white outline-none focus:border-blue-400" placeholder="instagram_handle"/>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-bold text-slate-800">{tempContact.instagram || '---'}</span>
+                    {tempContact.instagram && <button onClick={() => window.open(`https://instagram.com/${tempContact.instagram}`, '_blank')} className="px-3 py-1.5 rounded-xl bg-pink-600 text-white text-sm font-bold hover:bg-pink-700">פתח</button>}
+                  </div>
+                )}
+              </div>
+              <div>
+                <div className="text-xs text-gray-500 font-bold uppercase mb-1">פייסבוק</div>
+                {isEditing ? (
+                  <input value={tempContact.facebook} onChange={e => setTempContact({...tempContact, facebook: e.target.value})} className="w-full p-3 rounded-xl border border-gray-200 bg-white outline-none focus:border-blue-400" placeholder="שם דף/חיפוש"/>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-bold text-slate-800">{tempContact.facebook || '---'}</span>
+                    {tempContact.facebook && <button onClick={() => window.open(`https://www.facebook.com/search/top?q=${encodeURIComponent(tempContact.facebook)}`, '_blank')} className="px-3 py-1.5 rounded-xl bg-blue-700 text-white text-sm font-bold hover:bg-blue-800">פתח</button>}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-          <div className="bg-yellow-50 p-6 rounded-3xl border border-yellow-100 h-full">
+
+          <div className="bg-yellow-50 p-6 rounded-3xl border border-yellow-100">
             <label className="flex items-center gap-2 font-bold text-yellow-800 mb-2">
               <FileText size={18}/> הערות חשובות
             </label>
