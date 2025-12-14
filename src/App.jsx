@@ -44,12 +44,14 @@ const DEFAULT_STAGES_TEMPLATE = [
   "עריכה ופוסט"
 ];
 
+const NUKA_LOGO = "/media/images/518251013_17953274969983339_6813015775964785767_n.jpg";
+
 const INITIAL_CLIENTS = [
   {
     id: 1,
     name: "מסעדת נוקה",
     type: "מסעדה",
-    logo: "https://scontent.cdninstagram.com/v/t51.82787-15/520077361_18012368498774055_7485616743030910864_n.jpg?stp=dst-jpg_e35_tt6&_nc_cat=107&ig_cache_key=MzY3ODE3NzAyNzI2MzQ5MTc2Nw%3D%3D.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6InhwaWRzLjE0NDB4MTkyMC5zZHIuQzMifQ%3D%3D&_nc_ohc=wZ5TMMzCp_kQ7kNvwG5-tqc&_nc_oc=AdkDUtdM-MWLpDUbK-vRYMAj7_Tb5_O8wPjt1QgVbQ8GzlFq-Xxod9ohFH5c7LCnLms&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&_nc_ht=scontent.cdninstagram.com&_nc_gid=yoLCRnYSXPIamebveqkIIQ&oh=00_Afkp0TwqzPbhAZk6npuMSAqkP6_La4Xg0kTLIjhZ9tG5Ug&oe=693E0265",
+    logo: NUKA_LOGO,
     contact: {
       phone: "050-9999999",
       email: "nuka@restaurant.com",
@@ -115,10 +117,20 @@ const TEAM_MEMBERS = [
 
 // --- קומפוננטה ראשית ---
 
+const applyMigrations = (clientsList) => {
+  return clientsList.map((client) => {
+    if (client.id === 1 && client.logo !== NUKA_LOGO) {
+      return { ...client, logo: NUKA_LOGO };
+    }
+    return client;
+  });
+};
+
 export default function App() {
   const [clients, setClients] = useState(() => {
     const saved = localStorage.getItem('agencyClientsV3');
-    return saved ? JSON.parse(saved) : INITIAL_CLIENTS;
+    const base = saved ? JSON.parse(saved) : INITIAL_CLIENTS;
+    return applyMigrations(base);
   });
 
   const [selectedClientId, setSelectedClientId] = useState(null);
